@@ -3,14 +3,16 @@ ClaudeCiberControl - Configuration Settings
 Aligned with MITRE ATT&CK, NIST SP 800-115, CIS Controls v8
 """
 
+import os
+
 VERSION = "1.0.0"
 TOOL_NAME = "ClaudeCiberControl"
 AUTHOR = "Security Team"
 
-# ── Output directories ────────────────────────────────────────────────────────
-OUTPUT_DIR = "output"
-REPORTS_DIR = "output/reports"
-LOGS_DIR = "output/logs"
+# ── Output directories (overridable via env) ──────────────────────────────────
+OUTPUT_DIR = os.environ.get("CCC_OUTPUT_DIR", "output").rsplit("/", 1)[0] if "/" in os.environ.get("CCC_OUTPUT_DIR", "") else "output"
+REPORTS_DIR = os.environ.get("CCC_OUTPUT_DIR", "output/reports")
+LOGS_DIR = os.path.join(OUTPUT_DIR, "logs")
 
 # ── Nmap defaults ─────────────────────────────────────────────────────────────
 NMAP_DEFAULT_ARGS = "-sV -sC --version-intensity 5 -O"
@@ -18,11 +20,11 @@ NMAP_FAST_ARGS = "-F -sV --version-intensity 3"
 NMAP_FULL_ARGS = "-sV -sC -A -O -p- --version-intensity 9"
 NMAP_UDP_ARGS = "-sU --top-ports 200"
 NMAP_VULN_ARGS = "-sV --script=vuln,exploit,auth,default"
-NMAP_TIMEOUT = 300  # seconds
+NMAP_TIMEOUT = int(os.environ.get("CCC_NMAP_TIMEOUT", "300"))
 
 # ── Web scanner defaults ──────────────────────────────────────────────────────
-HTTP_TIMEOUT = 10
-USER_AGENT = "ClaudeCiberControl/1.0 Security Scanner"
+HTTP_TIMEOUT = int(os.environ.get("CCC_HTTP_TIMEOUT", "10"))
+USER_AGENT = os.environ.get("CCC_USER_AGENT", "ClaudeCiberControl/1.0 Security Scanner")
 FOLLOW_REDIRECTS = True
 MAX_REDIRECTS = 5
 COMMON_PORTS = [80, 443, 8080, 8443, 8000, 8888, 3000, 5000]
@@ -104,7 +106,7 @@ SEVERITY_COLORS = {
 
 # ── Report settings ───────────────────────────────────────────────────────────
 REPORT_FORMATS = ["html", "json", "txt"]
-COMPANY_NAME = "ClaudeCiberControl Security"
+COMPANY_NAME = os.environ.get("CCC_COMPANY_NAME", "ClaudeCiberControl Security")
 REPORT_DISCLAIMER = (
     "Este reporte fue generado con fines de evaluación de seguridad autorizada. "
     "La información contenida es confidencial y de uso exclusivo del destinatario."

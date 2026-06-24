@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  cibercontrol:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cibercontrol:latest
+    container_name: cibercontrol
+
+    # Run as root inside container so nmap can use raw sockets
+    user: root
+
+    # Required for nmap SYN/OS detection scans
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+
+    # Reports land in ./output on the host
+    volumes:
+      - ./output:/app/output
+
+    # Default: show help. Override at runtime:
+    #   docker compose run cibercontrol example.com --profile full
+    command: ["--help"]
+
+    # Resource limits (adjust for your VM)
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1G
+
+    networks:
+      - scanner_net
+
+networks:
+  scanner_net:
+    driver: bridge
