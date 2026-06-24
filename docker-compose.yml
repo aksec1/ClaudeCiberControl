@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  cibercontrol:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cibercontrol:latest
+    container_name: cibercontrol
+    user: root
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./output:/app/output
+    command: ["--help"]
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1G
+    networks:
+      - scanner_net
+
+networks:
+  scanner_net:
+    driver: bridge
