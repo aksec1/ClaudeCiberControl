@@ -15,9 +15,9 @@ REPORTS_DIR = os.environ.get("CCC_OUTPUT_DIR", "output/reports")
 LOGS_DIR = os.path.join(OUTPUT_DIR, "logs")
 
 # ── Nmap defaults ─────────────────────────────────────────────────────────────
-NMAP_DEFAULT_ARGS = "-sV -sC --version-intensity 5 -O"
+NMAP_DEFAULT_ARGS = "-sV -sC --version-intensity 5"
 NMAP_FAST_ARGS = "-F -sV --version-intensity 3"
-NMAP_FULL_ARGS = "-sV -sC -A -O -p- --version-intensity 9"
+NMAP_FULL_ARGS = "-sV -sC -A -p- --version-intensity 9"
 NMAP_UDP_ARGS = "-sU --top-ports 200"
 NMAP_VULN_ARGS = "-sV --script=vuln,exploit,auth,default"
 NMAP_TIMEOUT = int(os.environ.get("CCC_NMAP_TIMEOUT", "300"))
