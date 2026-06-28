@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block title %}Rendición #{{ report.id }}{% endblock %}
+{% block page_title %}Rendición #{{ report.id }}{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+  <div>
+    <h5 class="mb-1">{{ report.title }}</h5>
+    <span class="badge bg-{{ report.status_badge }} badge-pill me-2">{{ report.status_label }}</span>
+    {% if report.travel_destination %}<span class="text-muted small"><i class="bi bi-geo-alt me-1"></i>{{ report.travel_destination }}</span>{% endif %}
+  </div>
+  <div class="d-flex gap-2">
+    {% if report.status in ('borrador', 'rechazado') %}
+    <form method="POST" action="{{ url_for('expense.submit_report', report_id=report.id) }}" onsubmit="return confirm('¿Confirmas el envío de esta rendición?')">
+      <button type="submit" class="btn btn-success">
+        <i class="bi bi-send me-2"></i>Enviar para revisión
+      </button>
+    </form>
+    {% endif %}
+    <a href="{{ url_for('expense.list_reports') }}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>Volver
+    </a>
+  </div>
+</div>
+
+{% if report.rejection_reason %}
+<div class="alert alert-danger">
+  <i class="bi bi-exclamation-triangle-fill me-2"></i>
+  <strong>Motivo de rechazo:</strong> {{ report.rejection_reason }}
+</div>
+{% endif %}
+
+{% if report.reviewer_notes %}
+<div class="alert alert-info">
+  <i class="bi bi-chat-text me-2"></i>
+  <strong>Notas del revisor:</strong> {{ report.reviewer_notes }}
+</div>
+{% endif %}
+
+<div class="row g-3">
+  <!-- Lista de ítems -->
+  <div class="col-lg-8">
+    {% for item in report.items %}
+    <div class="card mb-3">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="flex-grow-1">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="badge bg-secondary">{{ item.type_label }}</span>
+              <strong>{{ item.description }}</strong>
+            </div>
+            <div class="text-muted small">
+              <i class="bi bi-calendar3 me-1"></i>{{ item.expense_date.strftime('%d/%m/%Y') }}
+              {% if item.vendor %}<span class="ms-3"><i class="bi bi-shop me-1"></i>{{ item.vendor }}</span>{% endif %}
+            </div>
+            {% if item.notes %}<div class="text-muted small mt-1">{{ item.notes }}</div>{% endif %}
+
+            <!-- Adjuntos -->
+            {% if item.attachments.count() > 0 %}
+            <div class="d-flex gap-2 mt-2 flex-wrap">
+              {% for att in item.attachments %}
+              <a href="{{ url_for('expense.serve_upload', filename=att.filename) }}" target="_blank" title="{{ att.original_filename }}">
+                {% if att.is_image %}
+                <img src="{{ url_for('expense.serve_upload', filename=att.filename) }}" class="attachment-thumb" alt="{{ att.original_filename }}">
+                {% else %}
+                <div class="attachment-thumb d-flex align-items-center justify-content-center bg-light border rounded" style="width:60px;height:60px;">
+                  <i class="bi bi-file-earmark-pdf text-danger" style="font-size:1.5rem"></i>
+                </div>
+                {% endif %}
+              </a>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-muted small mt-2"><i class="bi bi-paperclip me-1"></i>Sin adjuntos</div>
+            {% endif %}
+          </div>
+          <div class="text-end ms-3">
+            <div class="fw-bold fs-5">${{ "{:,.0f}".format(item.amount) }}</div>
+            <div class="text-muted small">{{ item.currency }}</div>
+            {% if report.status in ('borrador', 'rechazado') %}
+            <form method="POST" action="{{ url_for('expense.delete_item', report_id=report.id, item_id=item.id) }}" class="mt-2" onsubmit="return confirm('¿Eliminar este ítem?')">
+              <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="card mb-3">
+      <div class="card-body text-center text-muted py-5">
+        <i class="bi bi-inbox display-5 d-block mb-2"></i>
+        Aún no hay ítems. Agrega gastos usando el formulario.
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Panel lateral -->
+  <div class="col-lg-4">
+    <!-- Resumen -->
+    <div class="card mb-3">
+      <div class="card-header">Resumen</div>
+      <div class="card-body">
+        <table class="table table-sm mb-0">
+          <tr><td class="text-muted">Total ítems</td><td class="text-end fw-semibold">{{ report.items.count() }}</td></tr>
+          <tr><td class="text-muted">Monto solicitado</td><td class="text-end fw-bold">${{ "{:,.0f}".format(report.total_amount) }}</td></tr>
+          {% if report.approved_amount is not none %}
+          <tr><td class="text-muted">Monto aprobado</td><td class="text-end fw-bold text-success">${{ "{:,.0f}".format(report.approved_amount) }}</td></tr>
+          {% endif %}
+        </table>
+      </div>
+    </div>
+
+    <!-- Agregar ítem (solo en borrador/rechazado) -->
+    {% if report.status in ('borrador', 'rechazado') %}
+    <div class="card">
+      <div class="card-header"><i class="bi bi-plus-circle me-2 text-primary"></i>Agregar Ítem</div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('expense.add_item', report_id=report.id) }}" enctype="multipart/form-data">
+          <div class="mb-2">
+            <label class="form-label small fw-semibold">Tipo <span class="text-danger">*</span></label>
+            <select name="expense_type" class="form-select form-select-sm" required>
+              {% for value, label in expense_types %}
+              <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-semibold">Descripción <span class="text-danger">*</span></label>
+            <input type="text" name="description" class="form-control form-control-sm" placeholder="Ej: Almuerzo reunión con cliente" required>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-semibold">Fecha <span class="text-danger">*</span></label>
+            <input type="date" name="expense_date" class="form-control form-control-sm" value="{{ today }}" required>
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-8">
+              <label class="form-label small fw-semibold">Monto <span class="text-danger">*</span></label>
+              <input type="number" name="amount" class="form-control form-control-sm" placeholder="0" step="1" min="1" required>
+            </div>
+            <div class="col-4">
+              <label class="form-label small fw-semibold">Moneda</label>
+              <select name="currency" class="form-select form-select-sm">
+                <option value="CLP">CLP</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+              </select>
+            </div>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-semibold">Proveedor / Local</label>
+            <input type="text" name="vendor" class="form-control form-control-sm" placeholder="Nombre del lugar o comercio">
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-semibold">Notas</label>
+            <input type="text" name="notes" class="form-control form-control-sm" placeholder="Información adicional">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Comprobante (ticket/boleta/foto)</label>
+            <div class="file-drop" id="fileDropZone" onclick="document.getElementById('fileInput').click()">
+              <i class="bi bi-cloud-upload text-muted d-block mb-1" style="font-size:1.5rem"></i>
+              <small class="text-muted">Arrastra archivos aquí o haz clic<br>JPG, PNG, PDF — máx. 16 MB</small>
+            </div>
+            <input type="file" id="fileInput" name="attachments" multiple accept="image/*,.pdf" class="d-none" onchange="previewFiles(this)">
+            <div id="filePreview" class="d-flex gap-2 mt-2 flex-wrap"></div>
+          </div>
+          <button type="submit" class="btn btn-primary w-100 btn-sm">
+            <i class="bi bi-plus-circle me-1"></i>Agregar Ítem
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const dropZone = document.getElementById('fileDropZone');
+const fileInput = document.getElementById('fileInput');
+
+if (dropZone) {
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor = '#1a3c5e'; });
+  dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = ''; });
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.style.borderColor = '';
+    const dt = new DataTransfer();
+    [...e.dataTransfer.files].forEach(f => dt.items.add(f));
+    fileInput.files = dt.files;
+    previewFiles(fileInput);
+  });
+}
+
+function previewFiles(input) {
+  const preview = document.getElementById('filePreview');
+  preview.innerHTML = '';
+  [...input.files].forEach(file => {
+    const div = document.createElement('div');
+    div.className = 'position-relative';
+    if (file.type.startsWith('image/')) {
+      const img = document.createElement('img');
+      img.className = 'attachment-thumb';
+      img.src = URL.createObjectURL(file);
+      div.appendChild(img);
+    } else {
+      div.innerHTML = '<div class="attachment-thumb d-flex align-items-center justify-content-center bg-light border rounded"><i class="bi bi-file-earmark-pdf text-danger" style="font-size:1.5rem"></i></div>';
+    }
+    const name = document.createElement('div');
+    name.className = 'text-muted' ; name.style.fontSize = '0.65rem'; name.style.maxWidth = '60px'; name.style.overflow = 'hidden'; name.style.textOverflow = 'ellipsis';
+    name.textContent = file.name;
+    div.appendChild(name);
+    preview.appendChild(div);
+  });
+}
+</script>
+{% endblock %}

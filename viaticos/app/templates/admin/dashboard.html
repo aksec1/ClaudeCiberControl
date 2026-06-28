@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Bandeja de Revisión{% endblock %}
+{% block page_title %}Bandeja de Revisión{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="mb-0">Rendiciones Pendientes
+    <span class="badge bg-warning text-dark ms-2">{{ pending|length }}</span>
+  </h5>
+  <a href="{{ url_for('admin.all_reports') }}" class="btn btn-outline-secondary btn-sm">Ver todas</a>
+</div>
+
+{% if pending %}
+<div class="row g-3">
+  {% for r in pending %}
+  <div class="col-12">
+    <div class="card border-start border-warning border-3">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+          <div>
+            <h6 class="mb-1">
+              <span class="text-muted me-2">#{{ r.id }}</span>{{ r.title }}
+            </h6>
+            <div class="text-muted small">
+              <i class="bi bi-person me-1"></i>{{ r.employee.name }} — {{ r.employee.department or 'Sin depto.' }}
+              {% if r.travel_destination %}<span class="ms-3"><i class="bi bi-geo-alt me-1"></i>{{ r.travel_destination }}</span>{% endif %}
+              {% if r.submitted_at %}<span class="ms-3"><i class="bi bi-clock me-1"></i>{{ r.submitted_at.strftime('%d/%m/%Y %H:%M') }}</span>{% endif %}
+            </div>
+          </div>
+          <div class="text-end">
+            <div class="fw-bold fs-5">${{ "{:,.0f}".format(r.total_amount) }}</div>
+            <div class="text-muted small">{{ r.items.count() }} ítems</div>
+          </div>
+        </div>
+        <div class="mt-3 d-flex gap-2">
+          <a href="{{ url_for('admin.view_report', report_id=r.id) }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-eye me-1"></i>Revisar
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card">
+  <div class="card-body text-center text-muted py-5">
+    <i class="bi bi-check-circle display-4 d-block mb-3 text-success"></i>
+    <h5>Todo al día</h5>
+    <p class="mb-0">No hay rendiciones pendientes de revisión.</p>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

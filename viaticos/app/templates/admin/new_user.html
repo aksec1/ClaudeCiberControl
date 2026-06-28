@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Nuevo Usuario{% endblock %}
+{% block page_title %}Nuevo Usuario{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-person-plus me-2 text-primary"></i>Crear Usuario</div>
+      <div class="card-body p-4">
+        <form method="POST" action="{{ url_for('admin.new_user') }}">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-semibold">Nombre completo <span class="text-danger">*</span></label>
+              <input type="text" name="name" class="form-control" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
+              <input type="email" name="email" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Departamento</label>
+              <input type="text" name="department" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Cargo</label>
+              <input type="text" name="position" class="form-control">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Contraseña temporal <span class="text-danger">*</span></label>
+              <input type="password" name="password" class="form-control" minlength="8" required>
+            </div>
+            <div class="col-12">
+              <div class="form-check">
+                <input type="checkbox" name="is_admin" class="form-check-input" id="isAdmin">
+                <label class="form-check-label" for="isAdmin">Es administrador (puede revisar y aprobar rendiciones)</label>
+              </div>
+            </div>
+            <div class="col-12 d-flex gap-2">
+              <button type="submit" class="btn btn-primary">Crear Usuario</button>
+              <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary">Cancelar</a>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
