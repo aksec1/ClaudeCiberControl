@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Mi Perfil{% endblock %}
+{% block page_title %}Mi Perfil{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-person-circle text-primary"></i> Datos Personales
+      </div>
+      <div class="card-body p-4">
+        <form method="POST" action="{{ url_for('auth.profile') }}">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-semibold">Nombre completo</label>
+              <input type="text" name="name" class="form-control" value="{{ current_user.name }}" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Email</label>
+              <input type="email" class="form-control" value="{{ current_user.email }}" disabled>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Departamento</label>
+              <input type="text" name="department" class="form-control" value="{{ current_user.department or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Cargo</label>
+              <input type="text" name="position" class="form-control" value="{{ current_user.position or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Banco</label>
+              <input type="text" name="bank_name" class="form-control" value="{{ current_user.bank_name or '' }}" placeholder="Banco Estado, BCI, Santander...">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">N° Cuenta Bancaria</label>
+              <input type="text" name="bank_account" class="form-control" value="{{ current_user.bank_account or '' }}">
+            </div>
+            <div class="col-12"><hr><h6 class="text-muted">Cambiar Contraseña <small>(dejar en blanco para no cambiar)</small></h6></div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Nueva Contraseña</label>
+              <input type="password" name="new_password" class="form-control" placeholder="Mínimo 8 caracteres">
+            </div>
+            <div class="col-12">
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle me-2"></i>Guardar Cambios
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Nueva Rendición{% endblock %}
+{% block page_title %}Nueva Rendición{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-plus-circle me-2 text-primary"></i>Crear Rendición de Gastos</div>
+      <div class="card-body p-4">
+        <form method="POST" action="{{ url_for('expense.new_report') }}">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Título <span class="text-danger">*</span></label>
+            <input type="text" name="title" class="form-control" placeholder="Ej: Viaje a Santiago — Reunión clientes Enero 2025" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Descripción</label>
+            <textarea name="description" class="form-control" rows="3" placeholder="Descripción general del viaje o motivo del gasto..."></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Destino</label>
+            <input type="text" name="travel_destination" class="form-control" placeholder="Ciudad o lugar de destino">
+          </div>
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Fecha inicio</label>
+              <input type="date" name="travel_start" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Fecha término</label>
+              <input type="date" name="travel_end" class="form-control">
+            </div>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-arrow-right-circle me-2"></i>Crear y agregar ítems
+            </button>
+            <a href="{{ url_for('expense.list_reports') }}" class="btn btn-outline-secondary">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

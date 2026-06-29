@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Iniciar Sesión{% endblock %}
+{% block public_content %}
+<div class="min-vh-100 d-flex align-items-center justify-content-center" style="background: linear-gradient(135deg, #1a3c5e 0%, #2a5a8e 100%);">
+  <div class="card shadow-lg" style="width: 100%; max-width: 420px;">
+    <div class="card-body p-5">
+      <div class="text-center mb-4">
+        <div class="mb-3" style="font-size: 3rem; color: #1a3c5e;"><i class="bi bi-receipt-cutoff"></i></div>
+        <h4 class="fw-bold" style="color: #1a3c5e;">Rendición de Gastos</h4>
+        <p class="text-muted small">Viáticos y Beneficios</p>
+      </div>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endwith %}
+      <form method="POST" action="{{ url_for('auth.login') }}">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Email</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+            <input type="email" name="email" class="form-control" placeholder="usuario@empresa.com" required autofocus>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Contraseña</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+            <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+          </div>
+        </div>
+        <div class="mb-4 form-check">
+          <input type="checkbox" name="remember" class="form-check-input" id="remember">
+          <label class="form-check-label" for="remember">Recordarme</label>
+        </div>
+        <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+          <i class="bi bi-box-arrow-in-right me-2"></i>Ingresar
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
