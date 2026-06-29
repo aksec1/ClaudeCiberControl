@@ -1,9 +1,11 @@
 """
-Servidor de producción para Windows Server 2022 usando Waitress.
-Uso: python run_windows.py
+Servidor de producción — Windows Server 2022 y Ubuntu Server 22.04
+Usa Waitress (compatible con ambos SO).
 
-Para Ubuntu usa run.py (misma lógica, HOST por defecto es 127.0.0.1
-para que solo nginx pueda acceder).
+Uso:
+  Windows: python run.py
+  Ubuntu:  venv/bin/python run.py
+           (o lo inicia systemd automáticamente)
 """
 import os
 import sys
@@ -16,9 +18,7 @@ from waitress import serve
 app = create_app()
 
 if __name__ == "__main__":
-    # En Windows sin reverse proxy escucha en todas las interfaces.
-    # En Ubuntu con nginx usar run.py (HOST=127.0.0.1).
-    host = os.getenv("HOST", "0.0.0.0")
+    host = os.getenv("HOST", "127.0.0.1")   # solo localhost; nginx hace el proxy
     port = int(os.getenv("PORT", 5000))
     threads = int(os.getenv("THREADS", 8))
 

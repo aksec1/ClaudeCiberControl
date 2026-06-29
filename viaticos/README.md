@@ -16,7 +16,66 @@ Plataforma web para gestión de rendiciones de gastos (viáticos, almuerzos, tra
 ## Requisitos
 
 - Python 3.11+
-- Windows Server 2022 (también compatible con Linux/macOS)
+- **Windows Server 2022** o **Ubuntu Server 22.04 LTS**
+
+---
+
+## Instalación en Ubuntu Server 22.04 LTS
+
+### Instalación automática (recomendada)
+
+```bash
+# 1. Clonar el repositorio o copiar la carpeta viaticos/ al servidor
+git clone https://github.com/aksec1/ClaudeCiberControl.git
+cd ClaudeCiberControl/viaticos
+
+# 2. Ejecutar el instalador como root
+sudo bash install_ubuntu.sh
+
+# 3. Editar configuración (email, empresa, etc.)
+sudo nano /opt/viaticos/.env
+
+# 4. Iniciar el servicio
+sudo systemctl start viaticos
+sudo systemctl status viaticos
+```
+
+### Configurar HTTPS con Let's Encrypt (Ubuntu)
+
+```bash
+# Editar dominio y email en el script
+sudo nano /opt/viaticos/nginx/setup_https_ubuntu.sh
+
+# Ejecutar (requiere que el dominio apunte a este servidor)
+sudo bash /opt/viaticos/nginx/setup_https_ubuntu.sh
+```
+
+El script hace todo automáticamente:
+- Instala y configura **nginx** como reverse proxy
+- Solicita el certificado gratuito con **Certbot** (Let's Encrypt)
+- Configura la redirección HTTP → HTTPS
+- Activa el **systemd timer** de renovación automática cada 60 días
+
+### Comandos útiles (Ubuntu)
+
+```bash
+# Ver logs en tiempo real
+sudo journalctl -u viaticos -f
+
+# Reiniciar la app
+sudo systemctl restart viaticos
+
+# Estado del servicio
+sudo systemctl status viaticos
+
+# Renovar certificado manualmente
+sudo certbot renew
+
+# Estado del timer de renovación automática
+systemctl status certbot.timer
+```
+
+---
 
 ## Instalación en Windows Server 2022
 
