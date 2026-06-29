@@ -11,6 +11,7 @@ Plataforma web para gestión de rendiciones de gastos (viáticos, almuerzos, tra
 - Panel de administración para aprobar, rechazar y marcar pagos
 - Gestión de usuarios con roles (admin / empleado)
 - Cuenta bancaria del empleado para trazabilidad del pago
+- **HTTPS con Let's Encrypt** (certificado gratuito, renovación automática)
 
 ## Requisitos
 
@@ -67,14 +68,95 @@ python viaticos_service.py install
 python viaticos_service.py start
 ```
 
-## Exponer en red local
+## HTTPS con Let's Encrypt (Recomendado para producción)
 
-Para que otros equipos accedan, abre el puerto 5000 en el Firewall de Windows:
+### Arquitectura recomendada
+
 ```
-netsh advfirewall firewall add rule name="Viaticos App" dir=in action=allow protocol=TCP localport=5000
+Internet  →  nginx (puerto 443, TLS)  →  Flask/Waitress (puerto 5000, localhost)
+               ↕ cert Let's Encrypt
+             win-acme (renovación automática)
 ```
 
-Acceso desde la red: `http://IP-DEL-SERVIDOR:5000`
+### Requisitos previos
+- Dominio propio (ej: `rendiciones.tuempresa.com`) apuntando a la IP del servidor
+- Puerto 80 y 443 abiertos en el firewall del router/ISP
+
+### Instalación automática
+
+```bat
+# Como Administrador:
+# 1. Edita las variables DOMAIN y EMAIL al inicio del script
+notepad nginx\setup_https_windows.bat
+
+# 2. Ejecuta el script (descarga nginx + win-acme, obtiene certificado)
+nginx\setup_https_windows.bat
+```
+
+El script:
+1. Descarga **nginx** (reverse proxy) y **win-acme** (cliente Let's Encrypt)
+2. Solicita el certificado TLS gratuito para tu dominio
+3. Configura nginx para redirigir HTTP → HTTPS
+4. Crea tarea programada de Windows para renovar el certificado automáticamente (cada 60 días)
+
+### Instalación manual paso a paso
+
+**1. Instalar nginx para Windows**
+```
+Descargar: https://nginx.org/en/download.html (nginx/Windows)
+Extraer en: C:\nginx\
+```
+
+**2. Copiar y ajustar configuración**
+```bat
+copy nginx\nginx.conf C:\nginx\conf\nginx.conf
+# Editar: cambiar "rendiciones.tuempresa.com" por tu dominio real
+# Editar: ajustar rutas de certificados y archivos estáticos
+```
+
+**3. Obtener certificado con win-acme**
+```
+Descargar: https://www.win-acme.com/
+Extraer en: C:\win-acme\
+
+# Ejecutar como Administrador:
+C:\win-acme\wacs.exe --target manual --host rendiciones.tuempresa.com \
+  --validation filesystem --webroot C:\nginx\html \
+  --store pemfiles --emailaddress admin@tuempresa.com --accepttos
+```
+
+**4. Iniciar nginx**
+```bat
+cd C:\nginx
+nginx.exe
+```
+
+**5. Abrir puertos en Firewall**
+```bat
+netsh advfirewall firewall add rule name="HTTP"  dir=in action=allow protocol=TCP localport=80
+netsh advfirewall firewall add rule name="HTTPS" dir=in action=allow protocol=TCP localport=443
+```
+
+El sistema queda disponible en `https://rendiciones.tuempresa.com`
+
+### Opción B: SSL directo (sin nginx, solo red interna)
+
+Útil si el portal es solo para la red local y no necesitas dominio público:
+
+```bat
+# Con certificado autofirmado (genera advertencia en el navegador):
+venv\Scripts\activate
+python run_https.py --selfsigned
+
+# Con certificado propio:
+python run_https.py --cert C:\ruta\cert.pem --key C:\ruta\key.pem
+```
+
+> **Nota**: Para certificados Let's Encrypt se requiere un dominio público. Para redes internas, considera usar un certificado de una CA interna (Active Directory Certificate Services) o aceptar el certificado autofirmado en los navegadores de la empresa.
+
+### Renovación automática
+
+win-acme crea automáticamente una **tarea programada de Windows** que renueva el certificado antes de que venza (cada ~60 días). No requiere intervención manual.
 
 ## Usuarios por defecto
 

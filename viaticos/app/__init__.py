@@ -4,6 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_mail import Mail
 from flask_migrate import Migrate
+from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -32,6 +33,10 @@ def create_app():
 
     app.config["COMPANY_NAME"] = os.getenv("COMPANY_NAME", "Mi Empresa")
     app.config["ADMIN_EMAIL"] = os.getenv("ADMIN_EMAIL", "admin@empresa.com")
+
+    # Confiar en cabeceras del reverse proxy (nginx) para HTTPS
+    if os.getenv("BEHIND_PROXY", "1") == "1":
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
