@@ -30,50 +30,27 @@ command -v nginx   >/dev/null 2>&1 || apt-get install -y nginx
 command -v certbot >/dev/null 2>&1 || apt-get install -y certbot python3-certbot-nginx
 ok "nginx y certbot disponibles."
 
-# ---- 2. Configuración nginx (HTTP primero para el challenge ACME) ----
-echo "[1/4] Configurando nginx..."
+# ---- 2. Configuración nginx solo HTTP (sin SSL aún) ----
+# Certbot necesita que nginx esté activo en el puerto 80 para el challenge ACME.
+# Luego certbot modifica este archivo automáticamente para agregar SSL.
+echo "[1/4] Configurando nginx (HTTP temporal para obtener certificado)..."
 cat > /etc/nginx/sites-available/viaticos <<EOF
-# Configuración generada automáticamente — Sistema Rendición de Viáticos
+# Configuración inicial HTTP — certbot agregará SSL automáticamente
 
-# Redirect HTTP → HTTPS
 server {
     listen 80;
     listen [::]:80;
     server_name ${DOMAIN};
 
-    # ACME HTTP-01 challenge (Let's Encrypt)
+    # ACME HTTP-01 challenge
     location /.well-known/acme-challenge/ {
         root /var/www/html;
     }
 
-    location / {
-        return 301 https://\$host\$request_uri;
-    }
-}
-
-# HTTPS
-server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
-    server_name ${DOMAIN};
-
-    # Certificados (Certbot los gestiona automáticamente)
-    ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
-    include             /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
-
-    # Cabeceras de seguridad
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-    add_header X-Frame-Options SAMEORIGIN always;
-    add_header X-Content-Type-Options nosniff always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-
     # Límite de subida de archivos
     client_max_body_size 20M;
 
-    # Archivos estáticos servidos directamente por nginx
+    # Archivos estáticos
     location /static/ {
         alias ${APP_DIR}/app/static/;
         expires 7d;
@@ -87,7 +64,7 @@ server {
         proxy_set_header   Host \$host;
         proxy_set_header   X-Real-IP \$remote_addr;
         proxy_set_header   X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header   X-Forwarded-Proto https;
+        proxy_set_header   X-Forwarded-Proto \$scheme;
         proxy_read_timeout 120s;
         proxy_connect_timeout 10s;
         proxy_buffering    off;
@@ -99,10 +76,15 @@ EOF
 ln -sf /etc/nginx/sites-available/viaticos /etc/nginx/sites-enabled/viaticos
 rm -f /etc/nginx/sites-enabled/default
 
-nginx -t && ok "Configuración nginx válida."
-systemctl reload nginx
+nginx -t || err "Configuración nginx inválida. Revisa el archivo y vuelve a intentar."
+systemctl enable nginx
+systemctl restart nginx
+ok "nginx activo en puerto 80."
 
-# ---- 3. Obtener certificado Let's Encrypt ----
+# ---- 3. Obtener certificado y configurar HTTPS ----
+# certbot --nginx modifica el archivo de configuración automáticamente:
+# agrega ssl_certificate, ssl_certificate_key, options-ssl-nginx.conf,
+# ssl_dhparam y la redirección HTTP→HTTPS.
 echo "[2/4] Solicitando certificado Let's Encrypt para ${DOMAIN}..."
 echo "      (El dominio debe apuntar a la IP pública de este servidor)"
 echo
@@ -112,27 +94,45 @@ certbot --nginx \
     --non-interactive \
     --agree-tos \
     --email "$EMAIL" \
-    --redirect
+    --redirect \
+    --hsts \
+    --staple-ocsp
 
-ok "Certificado obtenido y nginx recargado con TLS."
+ok "Certificado obtenido. nginx recargado con TLS."
 
-# ---- 4. Firewall UFW ----
-echo "[3/4] Configurando firewall..."
-ufw allow 'Nginx Full'   # 80 + 443
-ufw allow OpenSSH        # conservar acceso SSH
+# ---- 4. Agregar cabeceras de seguridad extra (certbot no las incluye) ----
+echo "[3/4] Agregando cabeceras de seguridad..."
+# Insertar cabeceras en el bloque SSL que certbot generó
+NGINX_CONF="/etc/nginx/sites-available/viaticos"
+if ! grep -q "X-Frame-Options" "$NGINX_CONF"; then
+    sed -i '/ssl_certificate /a\
+\    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;\
+    add_header X-Frame-Options SAMEORIGIN always;\
+    add_header X-Content-Type-Options nosniff always;\
+    add_header X-XSS-Protection "1; mode=block" always;\
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;' "$NGINX_CONF"
+    nginx -t && systemctl reload nginx
+    ok "Cabeceras de seguridad agregadas."
+else
+    ok "Cabeceras de seguridad ya presentes."
+fi
+
+# ---- 5. Firewall UFW ----
+echo "[4/4] Configurando firewall..."
+ufw allow 'Nginx Full'
+ufw allow OpenSSH
 ufw --force enable
 ok "Firewall configurado (puertos 80, 443 y SSH abiertos)."
 
-# ---- 5. Verificar renovación automática ----
-echo "[4/4] Verificando renovación automática..."
-certbot renew --dry-run
-ok "Renovación automática de certbot verificada (cron/systemd timer activo)."
+# ---- Verificar renovación automática ----
+certbot renew --dry-run && ok "Renovación automática verificada (systemd timer activo)."
 
 echo
 echo "============================================================"
 echo -e "  ${GREEN}HTTPS configurado exitosamente!${NC}"
 echo "  Accede en: https://${DOMAIN}"
 echo
-echo "  El certificado se renueva automáticamente vía systemd timer."
-echo "  Verificar: systemctl status certbot.timer"
+echo "  Certificado: Let's Encrypt (válido 90 días, renovación automática)"
+echo "  Ver estado:  systemctl status certbot.timer"
+echo "  Ver logs:    sudo journalctl -u viaticos -f"
 echo "============================================================"
