@@ -7,7 +7,10 @@ from flask_migrate import Migrate
 from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
 
-load_dotenv()
+# Directorio raíz de la app (donde está este __init__.py → app/ → raíz)
+APP_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+load_dotenv(os.path.join(APP_ROOT, ".env"))
 
 db = SQLAlchemy()
 login_manager = LoginManager()
@@ -19,9 +22,15 @@ def create_app():
     app = Flask(__name__)
 
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///viaticos.db")
+
+    # Base de datos: ruta absoluta por defecto en la raíz del proyecto
+    default_db = "sqlite:///" + os.path.join(APP_ROOT, "viaticos.db")
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", default_db)
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    app.config["UPLOAD_FOLDER"] = os.getenv("UPLOAD_FOLDER", "app/static/uploads")
+
+    # Carpeta de uploads: siempre ruta absoluta
+    default_uploads = os.path.join(APP_ROOT, "app", "static", "uploads")
+    app.config["UPLOAD_FOLDER"] = os.getenv("UPLOAD_FOLDER", default_uploads)
     app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("MAX_CONTENT_LENGTH", 16 * 1024 * 1024))
 
     app.config["MAIL_SERVER"] = os.getenv("MAIL_SERVER", "smtp.gmail.com")

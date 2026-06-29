@@ -52,9 +52,12 @@ ok "Archivos copiados en $APP_DIR."
 
 # ---- 3. Entorno virtual Python ----
 echo "[3/6] Creando entorno virtual Python..."
-sudo -u "$APP_USER" "$PYTHON" -m venv "$APP_DIR/venv"
-sudo -u "$APP_USER" "$APP_DIR/venv/bin/pip" install --upgrade pip -q
-sudo -u "$APP_USER" "$APP_DIR/venv/bin/pip" install -r "$APP_DIR/requirements.txt" -q
+# Crear venv como root y luego cambiar ownership (evita warning de pip cache)
+"$PYTHON" -m venv "$APP_DIR/venv"
+chown -R "$APP_USER:$APP_USER" "$APP_DIR/venv"
+# Instalar con HOME explícito para que pip use caché dentro de APP_DIR
+sudo -u "$APP_USER" HOME="$APP_DIR" "$APP_DIR/venv/bin/pip" install --upgrade pip -q
+sudo -u "$APP_USER" HOME="$APP_DIR" "$APP_DIR/venv/bin/pip" install -r "$APP_DIR/requirements.txt" -q
 ok "Dependencias Python instaladas."
 
 # ---- 4. Configuración .env ----
@@ -70,7 +73,9 @@ fi
 
 # ---- 5. Inicializar base de datos ----
 echo "[5/6] Inicializando base de datos..."
-sudo -u "$APP_USER" "$APP_DIR/venv/bin/python" "$APP_DIR/init_db.py"
+# Ejecutar desde APP_DIR para que las rutas relativas residuales resuelvan bien
+sudo -u "$APP_USER" HOME="$APP_DIR" \
+    bash -c "cd '$APP_DIR' && '$APP_DIR/venv/bin/python' '$APP_DIR/init_db.py'"
 ok "Base de datos inicializada."
 
 # ---- 6. Instalar servicio systemd ----
